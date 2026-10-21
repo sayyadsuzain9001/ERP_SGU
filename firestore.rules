@@ -1,0 +1,149 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.role == 'admin'; }
+    function isTeacher() { return signedIn() && request.auth.token.role == 'teacher'; }
+    function owns(data) { return signedIn() && data.ownerUid == request.auth.uid; }
+
+    match /campusRequests/{requestId} {
+      function validRequest() {
+        let data = request.resource.data;
+        return data.keys().hasAll([
+            'ownerUid', 'studentName', 'studentId', 'email', 'phone',
+            'serviceCategory', 'subject', 'description', 'urgency',
+            'preferredContact', 'preferredDate', 'declaration', 'status', 'createdAt'
+          ])
+          && data.keys().hasOnly([
+            'ownerUid', 'studentName', 'studentId', 'email', 'phone',
+            'serviceCategory', 'subject', 'description', 'urgency',
+            'preferredContact', 'preferredDate', 'declaration', 'status', 'createdAt'
+          ])
+          && data.ownerUid == request.auth.uid
+          && data.studentName is string && data.studentName.size() >= 3 && data.studentName.size() <= 100
+          && data.studentName.matches('.*\\s+.*')
+          && data.studentId is string && data.studentId.size() >= 6 && data.studentId.size() <= 30
+          && data.email is string && data.email.size() <= 150
+          && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+          && data.phone is string && data.phone.size() <= 25
+          && (data.phone == '' || data.phone.matches('^\\+?[0-9 ]{8,15}$'))
+          && data.serviceCategory in ['Accommodation', 'IT Helpdesk', 'Library Services', 'Student Counselling', 'Career Services']
+          && data.subject is string && data.subject.size() >= 5 && data.subject.size() <= 100
+          && data.description is string && data.description.size() >= 20 && data.description.size() <= 300
+          && data.urgency in ['Low', 'Normal', 'High']
+          && data.preferredContact in ['Email', 'Phone']
+          && (data.preferredContact != 'Phone' || data.phone.size() > 0)
+          && data.preferredDate is timestamp && data.declaration == true
+          && data.status == 'submitted' && data.createdAt == request.time;
+      }
+      allow create: if signedIn() && validRequest();
+      allow get: if owns(resource.data) || isAdmin();
+      allow list: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    // Profile documents are keyed by Firebase Authentication UID. Client users cannot grant themselves roles.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid || isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'studentId', 'programme', 'staffId', 'department', 'phone', 'email', 'accountType', 'requestedRole', 'roleApprovalStatus', 'profileComplete', 'photoUrl', 'createdAt', 'updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() >= 3
+        && request.resource.data.email is string
+        && request.resource.data.accountType in ['student', 'teacher']
+        && request.resource.data.requestedRole == request.resource.data.accountType
+        && request.resource.data.profileComplete == true
+        && ((request.resource.data.accountType == 'student' && request.resource.data.studentId is string && request.resource.data.studentId.size() >= 4
+             && request.resource.data.programme is string && request.resource.data.programme.size() >= 2)
+            || (request.resource.data.accountType == 'teacher' && request.resource.data.staffId is string && request.resource.data.staffId.size() >= 3
+                && request.resource.data.department is string && request.resource.data.department.size() >= 2));
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'studentId', 'programme', 'staffId', 'department', 'phone', 'updatedAt', 'email', 'profileComplete', 'photoUrl']);
+      allow delete: if isAdmin();
+    }
+
+    // Shared module forms are always written to Firestore. Users see their own forms;
+    // staff visibility is granted only by trusted Firebase custom claims.
+    match /formSubmissions/{submissionId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['ownerUid', 'module', 'role', 'title', 'description', 'fields', 'status', 'createdAt', 'updatedAt', 'schemaVersion'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'module', 'role', 'title', 'description', 'fields', 'status', 'createdAt', 'updatedAt', 'schemaVersion'])
+        && request.resource.data.module is string && request.resource.data.module.size() >= 1 && request.resource.data.module.size() <= 100
+        && request.resource.data.title is string && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 120
+        && request.resource.data.description is string && request.resource.data.description.size() >= 10 && request.resource.data.description.size() <= 2000
+        && request.resource.data.fields is map && request.resource.data.status == 'submitted'
+        && request.resource.data.schemaVersion == 1 && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+      allow read: if owns(resource.data) || isAdmin() || isTeacher();
+      allow update: if (owns(resource.data) || isAdmin() || isTeacher())
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.module == resource.data.module
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'fields', 'status', 'updatedAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 120
+        && request.resource.data.description is string && request.resource.data.description.size() >= 10 && request.resource.data.description.size() <= 2000
+        && request.resource.data.fields is map
+        && request.resource.data.status in ['submitted', 'processing', 'approved', 'rejected', 'completed']
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if owns(resource.data) || isAdmin();
+    }
+
+    match /myEvents/{myEventId} {
+      allow create, update: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'eventId', 'title', 'dateLabel', 'time', 'location', 'category', 'description', 'registrationId', 'createdAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() >= 1 && request.resource.data.title.size() <= 120;
+      allow read, delete: if owns(resource.data);
+    }
+
+    match /eventRegistrations/{registrationId} {
+      allow create, update: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'eventId', 'eventTitle', 'eventDate', 'eventTime', 'eventLocation', 'studentName', 'studentId', 'email', 'phone', 'status', 'registeredAt'])
+        && request.resource.data.eventId is string
+        && request.resource.data.eventTitle is string && request.resource.data.eventTitle.size() >= 1 && request.resource.data.eventTitle.size() <= 120
+        && request.resource.data.studentName is string && request.resource.data.studentName.size() >= 3
+        && request.resource.data.studentId is string && request.resource.data.studentId.size() >= 1
+        && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && request.resource.data.status == 'registered';
+      allow read, delete: if owns(resource.data) || isAdmin();
+    }
+
+    match /calendarEvents/{eventId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'title', 'location', 'description', 'category', 'eventDate', 'createdAt', 'updatedAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 120
+        && request.resource.data.description is string && request.resource.data.description.size() >= 10 && request.resource.data.description.size() <= 2000
+        && request.resource.data.location is string && request.resource.data.location.size() <= 120
+        && request.resource.data.category in ['Academic', 'Exam', 'Club', 'Campus', 'Deadline']
+        && request.resource.data.eventDate is timestamp
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+      allow read: if signedIn();
+      allow update: if (owns(resource.data) || isAdmin() || isTeacher())
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'location', 'description', 'category', 'eventDate', 'updatedAt']);
+      allow delete: if owns(resource.data) || isAdmin() || isTeacher();
+    }
+
+    match /assignmentSubmissions/{submissionId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['ownerUid', 'assignmentTitle', 'courseName', 'fileName', 'storagePath', 'downloadUrl', 'sizeBytes', 'status', 'submittedAt', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'assignmentTitle', 'courseName', 'fileName', 'storagePath', 'downloadUrl', 'sizeBytes', 'status', 'submittedAt', 'createdAt'])
+        && request.resource.data.assignmentTitle is string
+        && request.resource.data.courseName is string
+        && request.resource.data.fileName is string
+        && request.resource.data.storagePath is string
+        && request.resource.data.sizeBytes is int && request.resource.data.sizeBytes > 0 && request.resource.data.sizeBytes <= 10485760
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.submittedAt == request.time && request.resource.data.createdAt == request.time;
+      allow read: if owns(resource.data) || isAdmin() || isTeacher();
+      allow update: if isAdmin() && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if owns(resource.data) || isAdmin();
+    }
+  }
+}

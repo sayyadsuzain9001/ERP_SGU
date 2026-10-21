@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "509934906962",
+    "project_id": "sguerp-35408",
+    "storage_bucket": "sguerp-35408.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:509934906962:android:df30ed2a42a9a89a86b98b",
+        "android_client_info": {
+          "package_name": "com.example.sgu_student_campus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQFG-TFI7ETCy9h3N_CjJm6GK0hA9WfJ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
