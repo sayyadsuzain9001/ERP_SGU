@@ -150,7 +150,7 @@ service cloud.firestore {
           && data.email is string && data.email.size() <= 150
           && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
           && data.phone is string && data.phone.matches('^\\+?[0-9 ]{8,15}$')
-          && data.facilityId in ['library', 'sports', 'seminar', 'music']
+          && data.facilityId in ['library', 'sports', 'seminar', 'music', 'auditorium', 'ground', 'badminton', 'gym', 'lab', 'conference']
           && data.facilityName is string && data.facilityName.size() <= 120
           && data.eventTitle is string && data.eventTitle.size() >= 3 && data.eventTitle.size() <= 120
           && data.activityType is string && data.activityType.size() <= 60

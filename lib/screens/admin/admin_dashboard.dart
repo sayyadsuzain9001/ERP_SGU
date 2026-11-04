@@ -85,7 +85,7 @@ class _AdminActions extends StatelessWidget {
     const SectionHeader('Action Required'), const SizedBox(height: 8),
     EmptyActionCard(icon: Icons.approval_outlined, title: 'Service requests', subtitle: 'Open and review submitted campus service requests.', onTap: () => onNavigate('Form Records')),
     const SizedBox(height: 10),
-    EmptyActionCard(icon: Icons.event_available_outlined, title: 'Facility bookings', subtitle: 'Review facility reservations.', onTap: () => onNavigate('Facilities')),
+    EmptyActionCard(icon: Icons.event_available_outlined, title: 'Facility bookings', subtitle: 'Review facility reservations.', onTap: () => onNavigate('Facility Bookings')),
     const SizedBox(height: 10),
     EmptyActionCard(icon: Icons.history_outlined, title: 'Audit review', subtitle: 'Review recent administrative changes.', onTap: () => onNavigate('Audit Logs')),
   ]);

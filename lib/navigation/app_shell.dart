@@ -198,7 +198,7 @@ class _AppShellState extends State<AppShell> {
           NavItem('Attendance', Icons.fact_check_outlined),
           NavItem('Announcements', Icons.campaign_outlined),
           NavItem('Events', Icons.event_outlined),
-          NavItem('Facilities', Icons.event_available_outlined),
+          NavItem('Facility Bookings', Icons.event_available_outlined),
           NavItem('Finance', Icons.account_balance_wallet_outlined),
           NavItem('Requests', Icons.support_agent_outlined),
           NavItem('Form Records', Icons.storage_outlined),
@@ -355,7 +355,7 @@ class _AppShellState extends State<AppShell> {
           ('PERSONAL & SUPPORT', Icons.person_outline, ['Notifications', 'Messages', 'Profile', 'Settings', 'Help & Support']),
         ];
       case UserRole.admin:
-        primaryLabels = const ['Dashboard', 'Facilities', 'Students', 'Teachers', 'Courses', 'Events', 'Requests', 'Form Records'];
+        primaryLabels = const ['Dashboard', 'Facility Bookings', 'Form Records', 'Students', 'Teachers', 'Courses', 'Events', 'Requests'];
         groups = const [
           ('ACADEMIC MANAGEMENT', Icons.school_outlined, ['Staff', 'Departments', 'Programmes', 'Subjects', 'Timetable', 'Exams', 'Academic Calendar', 'Assignments', 'Submissions', 'Grades', 'Attendance']),
           ('CAMPUS & REPORTING', Icons.business_outlined, ['Announcements', 'Finance', 'Reports', 'Audit Logs']),
@@ -613,14 +613,14 @@ class _AppShellState extends State<AppShell> {
         return const AdminAnnouncementsPage();
       case 'Events':
         return const AdminEventsPage();
-      case 'Facilities':
+      case 'Facility Bookings':
         return const AdminFacilitiesPage();
       case 'Finance':
         return const AdminFinancePage();
       case 'Requests':
         return const AdminRequestsPage();
       case 'Form Records':
-        return const AdminFormRecordsPage();
+        return AdminFormRecordsPage(onNavigate: (page) => setState(() => selected = page));
       case 'Reports':
         return const AdminReportsPage();
       case 'Notifications':

@@ -1,12 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../models/facility_booking.dart';
+import '../../services/facility_booking_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
 /// Admin-only live view of campus service requests stored in Firestore.
 class AdminFormRecordsPage extends StatefulWidget {
-  const AdminFormRecordsPage({super.key});
+  const AdminFormRecordsPage({super.key, this.onNavigate});
+
+  /// Opens another admin page by its menu label.
+  final ValueChanged<String>? onNavigate;
 
   @override
   State<AdminFormRecordsPage> createState() => _AdminFormRecordsPageState();
@@ -51,6 +56,29 @@ class _AdminFormRecordsPageState extends State<AdminFormRecordsPage> {
       ? empty
       : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
+  late final Stream<List<FacilityBookingRequest>> _facilityStream = FacilityBookingRepository().watchAllBookings();
+
+  /// Facility booking forms live in their own collection; surface them here
+  /// so every submitted form is reachable from Form Records.
+  Widget _facilityBookingsCard() => StreamBuilder<List<FacilityBookingRequest>>(
+        stream: _facilityStream,
+        builder: (context, snapshot) {
+          final all = snapshot.data ?? const <FacilityBookingRequest>[];
+          final pending = all.where((b) => b.status == FacilityBookingStatus.pending).length;
+          final subtitle = snapshot.hasError
+              ? 'Could not load facility booking forms (admin role and latest firestore.rules required).'
+              : !snapshot.hasData
+                  ? 'Loading facility booking forms…'
+                  : '${all.length} submitted • $pending pending review. Tap to review, approve or reject.';
+          return EmptyActionCard(
+            icon: Icons.event_available_outlined,
+            title: 'Facility booking forms',
+            subtitle: subtitle,
+            onTap: widget.onNavigate == null ? null : () => widget.onNavigate!('Facility Bookings'),
+          );
+        },
+      );
+
   @override
   void dispose() {
     _search.dispose();
@@ -65,6 +93,8 @@ class _AdminFormRecordsPageState extends State<AdminFormRecordsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _facilityBookingsCard(),
+          const SizedBox(height: 14),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(18),

@@ -42,12 +42,19 @@ class Facility {
 }
 
 class FacilityCatalog {
-  /// The four bookable facilities required by the lab specification.
+  /// Bookable campus facilities. The first four are the ones named in the lab
+  /// specification; the rest are the other main campus facilities.
   static const all = <Facility>[
     Facility(id: 'library', name: 'Library Discussion Room', location: 'Central Library, 1st floor', capacity: 12, imageUrl: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=900&q=80'),
     Facility(id: 'sports', name: 'Sports Hall', location: 'Sports Complex', capacity: 200, imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=900&q=80'),
     Facility(id: 'seminar', name: 'Seminar Room', location: 'Academic Block A', capacity: 80, imageUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900&q=80'),
     Facility(id: 'music', name: 'Music Practice Room', location: 'Student Centre', capacity: 10, imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=900&q=80'),
+    Facility(id: 'auditorium', name: 'Main Auditorium', location: 'Central Building', capacity: 400, imageUrl: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=900&q=80'),
+    Facility(id: 'ground', name: 'Sports Ground (Cricket / Football)', location: 'Sports Complex', capacity: 300, imageUrl: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=900&q=80'),
+    Facility(id: 'badminton', name: 'Indoor Badminton Court', location: 'Sports Complex', capacity: 20, imageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=900&q=80'),
+    Facility(id: 'gym', name: 'Gymnasium', location: 'Sports Complex', capacity: 40, imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=80'),
+    Facility(id: 'lab', name: 'Computer Lab', location: 'IT Block', capacity: 60, imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=900&q=80'),
+    Facility(id: 'conference', name: 'Conference Room', location: 'Admin Block', capacity: 25, imageUrl: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=900&q=80'),
   ];
 
   static Facility? byId(String id) {
