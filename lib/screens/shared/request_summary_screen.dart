@@ -76,47 +76,184 @@ class _RequestSummaryScreenState extends State<RequestSummaryScreen> {
             ),
           );
         }
-        return Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 850), child: Column(children: [
-          Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF7D2028), AppTheme.red]), borderRadius: BorderRadius.circular(22)), child: Column(children: [
-            Container(width: 64, height: 64, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), shape: BoxShape.circle), child: const Icon(Icons.check_rounded, color: Colors.white, size: 38)),
-            const SizedBox(height: 14), const Text('Request submitted successfully', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 7), const Text('Your request is saved in SGU Student Campus. Keep the reference below for follow-up.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, height: 1.4)),
-          ])),
-          const SizedBox(height: 16),
-          Card(child: Padding(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [Icon(Icons.receipt_long_outlined, color: AppTheme.red), SizedBox(width: 10), Text('Request summary', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: AppTheme.navy))]),
-            const SizedBox(height: 18),
-            Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: AppTheme.red.withValues(alpha: .055), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('REFERENCE NUMBER', style: TextStyle(fontSize: 10, letterSpacing: 1, color: AppTheme.muted, fontWeight: FontWeight.w800)), const SizedBox(height: 6), SelectableText(widget.requestId, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.navy))])),
-            const SizedBox(height: 18),
-            _detail('Subject', data['subject']?.toString() ?? ''),
-            _detail('Service', data['serviceCategory']?.toString() ?? ''),
-            _detail('Status', data['status']?.toString() ?? ''),
-            _detail('Preferred date', _campusDate(data['preferredDate'])),
-            const SizedBox(height: 20),
-            Wrap(spacing: 10, runSpacing: 10, children: [FilledButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back), label: const Text('Return to form')), OutlinedButton.icon(onPressed: _retry, icon: const Icon(Icons.refresh), label: const Text('Refresh verification'))]),
-          ]))),
-        ])));
-
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 850),
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 22,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF7D2028), AppTheme.red],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .16),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Request submitted successfully',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      const Text(
+                        'Your request is saved in SGU Student Campus. Keep the reference below for follow-up.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.receipt_long_outlined,
+                              color: AppTheme.red,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Request summary',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.navy,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppTheme.red.withValues(alpha: .055),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'REFERENCE NUMBER',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  letterSpacing: 1,
+                                  color: AppTheme.muted,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              SelectableText(
+                                widget.requestId,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppTheme.navy,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        _detail('Subject', data['subject']?.toString() ?? ''),
+                        _detail(
+                          'Service',
+                          data['serviceCategory']?.toString() ?? '',
+                        ),
+                        _detail('Status', data['status']?.toString() ?? ''),
+                        _detail(
+                          'Preferred date',
+                          _campusDate(data['preferredDate']),
+                        ),
+                        const SizedBox(height: 20),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            FilledButton.icon(
+                              onPressed: () => Navigator.pop(context, true),
+                              icon: const Icon(Icons.arrow_back),
+                              label: const Text('Return to form'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _retry,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Refresh verification'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     ),
   );
 
   Widget _detail(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 140,
-          child: Text(label, style: const TextStyle(color: AppTheme.muted)),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
+    padding: const EdgeInsets.symmetric(vertical: 7),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 440;
+        if (narrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: AppTheme.muted)),
+              const SizedBox(height: 3),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 140,
+              child: Text(label, style: const TextStyle(color: AppTheme.muted)),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
     ),
   );
 

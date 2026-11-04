@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../shared/module_pages.dart';
-import '../../models/models.dart';
+import 'admin_live_directory.dart';
 
 class AdminCoursesPage extends StatelessWidget {
   const AdminCoursesPage({super.key});
   @override
-  Widget build(BuildContext context) => const GenericModulePage(title: 'Courses', role: UserRole.admin);
+  Widget build(BuildContext context) => const AdminLiveDirectoryPage(title: 'Courses', kind: 'courses');
 }

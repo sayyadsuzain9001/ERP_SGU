@@ -691,7 +691,6 @@ class _CampusServiceRequestScreenState
     _formKey.currentState?.save();
     final reference = _repository.newRequestReference();
     setState(() {
-      _lastRequestId = reference.id;
       _isSubmitting = true;
     });
     try {
@@ -708,13 +707,17 @@ class _CampusServiceRequestScreenState
         preferredContact: _contact,
         preferredDate: _preferredDate!,
       );
+      // Read back from the server before telling the user that submission succeeded.
+      final saved = await _repository.fetchFromServer(reference.id);
+      if (saved == null) throw StateError('The request was written but could not be verified from the server. Keep reference ${reference.id} and retry verification.');
       if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      await Navigator.pushNamed(
+      setState(() { _isSubmitting = false; _lastRequestId = reference.id; });
+      final returned = await Navigator.pushNamed<bool>(
         context,
         AppRoutes.requestSummary,
         arguments: reference.id,
       );
+      if (returned == true && mounted) _reset();
     } on FirebaseException catch (error) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -724,7 +727,7 @@ class _CampusServiceRequestScreenState
         'operation-not-allowed',
         'invalid-argument',
       }.contains(error.code);
-      if (definitelyRejected) setState(() => _lastRequestId = null);
+      setState(() => _lastRequestId = definitelyRejected ? null : reference.id);
       final message = switch (error.code) {
         'permission-denied' => 'Access denied. Check that Anonymous Authentication is enabled and firestore.rules are published.',
         'operation-not-allowed' =>
@@ -741,7 +744,7 @@ class _CampusServiceRequestScreenState
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isSubmitting = false);
+      setState(() { _isSubmitting = false; _lastRequestId = reference.id; });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

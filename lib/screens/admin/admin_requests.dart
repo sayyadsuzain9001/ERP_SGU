@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../shared/module_pages.dart';
-import '../../models/models.dart';
+import 'admin_form_records.dart';
 
+/// Requests opens the real campus request queue instead of a generic form builder.
 class AdminRequestsPage extends StatelessWidget {
   const AdminRequestsPage({super.key});
   @override
-  Widget build(BuildContext context) => const GenericModulePage(title: 'Requests', role: UserRole.admin);
+  Widget build(BuildContext context) => const AdminFormRecordsPage();
 }

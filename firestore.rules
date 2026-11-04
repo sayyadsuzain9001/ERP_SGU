@@ -78,7 +78,7 @@ service cloud.firestore {
         && request.resource.data.description is string && request.resource.data.description.size() >= 10 && request.resource.data.description.size() <= 2000
         && request.resource.data.fields is map && request.resource.data.status == 'submitted'
         && request.resource.data.schemaVersion == 1 && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
-      allow read: if owns(resource.data) || isAdmin() || isTeacher();
+      allow read: if resource.data.module == 'Timetable' || owns(resource.data) || isAdmin() || isTeacher();
       allow update: if (owns(resource.data) || isAdmin() || isTeacher())
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.module == resource.data.module
@@ -127,6 +127,85 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'location', 'description', 'category', 'eventDate', 'updatedAt']);
       allow delete: if owns(resource.data) || isAdmin() || isTeacher();
+    }
+
+    // Facility Booking & Confirmation requests. Students submit 'pending'
+    // requests and can read/cancel their own; trusted admins review all and
+    // approve (issuing a confirmation number) or reject with remarks.
+    match /facilityBookings/{bookingId} {
+      function bookingKeys() {
+        return ['ownerUid', 'applicantName', 'studentId', 'programme', 'email', 'phone',
+          'facilityId', 'facilityName', 'eventTitle', 'activityType', 'purpose',
+          'startAt', 'endAt', 'attendees', 'coordinatorName', 'equipment',
+          'specialRequirements', 'declaration', 'status', 'createdAt', 'updatedAt'];
+      }
+      function validBooking() {
+        let data = request.resource.data;
+        return data.keys().hasAll(bookingKeys())
+          && data.keys().hasOnly(bookingKeys())
+          && data.ownerUid == request.auth.uid
+          && data.applicantName is string && data.applicantName.size() >= 3 && data.applicantName.size() <= 100
+          && data.studentId is string && data.studentId.size() >= 4 && data.studentId.size() <= 30
+          && data.programme is string && data.programme.size() >= 2 && data.programme.size() <= 120
+          && data.email is string && data.email.size() <= 150
+          && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+          && data.phone is string && data.phone.matches('^\\+?[0-9 ]{8,15}$')
+          && data.facilityId in ['library', 'sports', 'seminar', 'music']
+          && data.facilityName is string && data.facilityName.size() <= 120
+          && data.eventTitle is string && data.eventTitle.size() >= 3 && data.eventTitle.size() <= 120
+          && data.activityType is string && data.activityType.size() <= 60
+          && data.purpose is string && data.purpose.size() >= 20 && data.purpose.size() <= 1000
+          && data.startAt is timestamp && data.endAt is timestamp
+          // Start from (about) now through the next 30 days; 30/60/90 minute durations.
+          && data.startAt > request.time - duration.value(5, 'm')
+          && data.startAt < request.time + duration.value(31, 'd')
+          && (data.endAt - data.startAt).seconds() in [1800, 3600, 5400]
+          && data.attendees is int && data.attendees >= 1 && data.attendees <= 1000
+          && data.coordinatorName is string && data.coordinatorName.size() <= 100
+          && data.equipment is list && data.equipment.size() <= 10
+          && data.specialRequirements is string && data.specialRequirements.size() <= 500
+          && data.declaration == true
+          && data.status == 'pending'
+          && data.createdAt == request.time && data.updatedAt == request.time;
+      }
+      allow create: if signedIn() && validBooking();
+      // Personal details are stored here, so only the owner and admins can read.
+      allow get, list: if owns(resource.data) || isAdmin();
+      // Admin review: approve / reject / reopen.
+      allow update: if isAdmin()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'adminRemarks', 'reviewedBy', 'reviewedAt', 'confirmationNo', 'updatedAt'])
+        && request.resource.data.status in ['pending', 'approved', 'rejected'];
+      // Student withdraws their own pending request.
+      allow update: if owns(resource.data)
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    // Time windows of active (pending/approved) bookings only, keyed by the
+    // booking id and without personal data, so students can detect clashes.
+    // Each write must mirror the booking document in the same batch.
+    match /facilityAvailability/{bookingId} {
+      function bookingAfter() {
+        return getAfter(/databases/$(database)/documents/facilityBookings/$(bookingId)).data;
+      }
+      function mirrorsBooking() {
+        let d = request.resource.data;
+        let b = bookingAfter();
+        return d.keys().hasOnly(['ownerUid', 'facilityId', 'startAt', 'endAt', 'updatedAt'])
+          && d.ownerUid == b.ownerUid && d.facilityId == b.facilityId
+          && d.startAt == b.startAt && d.endAt == b.endAt
+          && b.status in ['pending', 'approved'];
+      }
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && mirrorsBooking();
+      allow create, update: if isAdmin() && mirrorsBooking();
+      // Freed when the owner cancels or an admin rejects (same batch).
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid
+            && bookingAfter().status == 'cancelled');
     }
 
     match /assignmentSubmissions/{submissionId} {

@@ -80,8 +80,10 @@ import '../screens/shared/notifications.dart';
 import '../screens/shared/messages.dart';
 import '../screens/forms/campus_service_request_screen.dart';
 import '../screens/routes/campus_services_screen.dart';
+import '../screens/routes/announcements_screen.dart';
 import '../screens/routes/campus_explorer_screen.dart';
 import '../screens/routes/campus_events_screen.dart';
+import '../screens/routes/facility_booking_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -134,8 +136,10 @@ class _AppShellState extends State<AppShell> {
           NavItem('Transcript', Icons.description_outlined),
           NavItem('Calendar', Icons.calendar_month_outlined),
           NavItem('Events', Icons.event_outlined),
+          NavItem('Announcements', Icons.campaign_outlined),
           NavItem('Campus', Icons.map_outlined),
           NavItem('Campus Services', Icons.support_agent_outlined),
+          NavItem('Facility Booking', Icons.event_available_outlined),
           NavItem('Service Request Form', Icons.assignment_outlined),
           NavItem('Clubs', Icons.groups_outlined),
           NavItem('Library', Icons.local_library_outlined),
@@ -337,10 +341,10 @@ class _AppShellState extends State<AppShell> {
     final List<(String, IconData, List<String>)> groups;
     switch (role) {
       case UserRole.student:
-        primaryLabels = const ['Dashboard', 'My Courses', 'Assignments', 'Timetable', 'Academic Progress', 'Events', 'Campus', 'Campus Services', 'Service Request Form'];
+        primaryLabels = const ['Dashboard', 'My Courses', 'Assignments', 'Timetable', 'Academic Progress', 'Service Request Form'];
         groups = const [
           ('ACADEMICS', Icons.school_outlined, ['Attendance', 'Course Registration', 'Exam Schedule', 'Hall Ticket', 'Results', 'Transcript', 'Calendar']),
-          ('CAMPUS LIFE', Icons.explore_outlined, ['Clubs', 'Library', 'Hostel', 'Transport', 'Cafeteria', 'Career']),
+          ('CAMPUS LIFE', Icons.explore_outlined, ['Announcements', 'Events', 'Campus', 'Campus Services', 'Facility Booking', 'Clubs', 'Library', 'Hostel', 'Transport', 'Cafeteria', 'Career']),
           ('PERSONAL & SUPPORT', Icons.person_outline, ['Notifications', 'Tasks', 'Messages', 'Requests', 'Profile', 'Settings', 'Help & Support']),
           ('FINANCE & DOCUMENTS', Icons.folder_outlined, ['Fee Summary', 'Payment History', 'Receipts', 'Documents']),
         ];
@@ -483,10 +487,14 @@ class _AppShellState extends State<AppShell> {
         return const StudentCalendarPage();
       case 'Events':
         return const CampusEventsScreen();
+      case 'Announcements':
+        return const AnnouncementsScreen();
       case 'Campus':
         return const CampusExplorerScreen();
       case 'Campus Services':
         return const CampusServicesScreen();
+      case 'Facility Booking':
+        return const FacilityBookingScreen();
       case 'Service Request Form':
         return const CampusServiceRequestScreen();
       case 'Clubs':
@@ -572,7 +580,7 @@ class _AppShellState extends State<AppShell> {
   Widget _adminPage() {
     switch (selected) {
       case 'Dashboard':
-        return const AdminDashboardPage();
+        return AdminDashboardPage(onNavigate: (destination) => setState(() => selected = destination));
       case 'Students':
         return const AdminStudentsPage();
       case 'Teachers':

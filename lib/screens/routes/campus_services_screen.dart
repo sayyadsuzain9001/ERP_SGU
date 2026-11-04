@@ -76,7 +76,7 @@ class _CampusServicesScreenState extends State<CampusServicesScreen> {
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 900 ? 2 : 1;
+                final columns = constraints.maxWidth >= 700 ? 4 : (constraints.maxWidth >= 420 ? 3 : 2);
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -85,7 +85,7 @@ class _CampusServicesScreenState extends State<CampusServicesScreen> {
                     crossAxisCount: columns,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    mainAxisExtent: 154,
+                    childAspectRatio: 1.2,
                   ),
                   itemBuilder: (context, index) => _serviceTile(context, services[index]),
                 );
@@ -98,46 +98,54 @@ class _CampusServicesScreenState extends State<CampusServicesScreen> {
 
   Widget _serviceTile(BuildContext context, CampusService service) {
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          await Navigator.pushNamed(
+        onTap: () {
+          Navigator.pushNamed(
             context,
             AppRoutes.serviceDetail,
             arguments: service,
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: AppTheme.red.withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(13),
                 ),
-                child: Icon(service.icon, color: AppTheme.red),
+                child: Icon(service.icon, color: AppTheme.red, size: 25),
               ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(service.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                    const SizedBox(height: 7),
-                    Text(
-                      service.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: AppTheme.muted),
-                    ),
-                  ],
+              const SizedBox(height: 10),
+              Text(
+                service.name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppTheme.navy,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.muted),
+              const SizedBox(height: 5),
+              Text(
+                service.description,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.muted,
+                  height: 1.25,
+                ),
+              ),
             ],
           ),
         ),

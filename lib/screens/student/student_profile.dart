@@ -1,7 +1,7 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
@@ -122,21 +122,33 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       if (croppedBytes == null || !mounted) return;
 
       setState(() => _uploadingPhoto = true);
-      // Always upload the cropped image as JPEG, so the storage path and MIME
-      // type stay consistent on Chrome, Windows, Android and iOS.
-      final photoName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance.ref('profilePhotos/${user.uid}/$photoName');
-      await ref.putData(
-        croppedBytes,
-        SettableMetadata(contentType: 'image/jpeg', cacheControl: 'no-cache'),
-      );
-      final url = await ref.getDownloadURL();
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'photoUrl': url,
+      // Store a small JPEG directly in this user's Firestore profile document.
+      // This works on Firebase Spark and syncs to other devices using the same account.
+      final decoded = img.decodeImage(croppedBytes);
+      if (decoded == null) throw const FormatException('Could not process the cropped photo.');
+      final resized = img.copyResize(decoded, width: 256, height: 256, interpolation: img.Interpolation.average);
+      Uint8List compactBytes = Uint8List.fromList(img.encodeJpg(resized, quality: 72));
+      // Keep the image comfortably below Firestore's 1 MiB document limit.
+      var quality = 60;
+      while (compactBytes.length > 180 * 1024 && quality >= 35) {
+        compactBytes = Uint8List.fromList(img.encodeJpg(resized, quality: quality));
+        quality -= 10;
+      }
+      if (compactBytes.length > 180 * 1024) {
+        throw StateError('This image could not be compressed enough. Please choose another photo.');
+      }
+      final encodedPhoto = base64Encode(compactBytes);
+      final profileRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      await profileRef.set({
+        'photoBase64': encodedPhoto,
+        'photoMimeType': 'image/jpeg',
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-      await user.updatePhotoURL(url);
-      await user.reload();
+      // Confirm the write completed and the saved field can be read back.
+      final confirmation = await profileRef.get(const GetOptions(source: Source.server));
+      if (confirmation.data()?['photoBase64'] != encodedPhoto) {
+        throw StateError('The photo save could not be verified. Please retry.');
+      }
       if (mounted) {
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,9 +157,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       }
     } on FirebaseException catch (e) {
       if (mounted) {
-        final message = e.code == 'unauthorized'
-            ? 'Firebase Storage denied this upload. Deploy storage.rules and check that this account is signed in.'
-            : 'Could not update photo (${e.code}). Check Firebase Storage and Firestore rules.';
+        final message = 'Could not save profile photo to Firestore (${e.code}). Check that this signed-in user can update their own users/{uid} document.';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (e) {
@@ -161,14 +171,23 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     }
   }
 
-  void _showStudentCard({required String name, required String id, required String programme, required String email, required String semester, required String photoUrl}) {
+  ImageProvider<Object>? _photoProvider(Map<String, dynamic> data, User? user) {
+    final encoded = (data['photoBase64'] ?? '').toString();
+    if (encoded.isNotEmpty) {
+      try { return MemoryImage(base64Decode(encoded)); } catch (_) { /* show initials if data is invalid */ }
+    }
+    final legacyUrl = (data['photoUrl'] ?? user?.photoURL ?? '').toString();
+    return legacyUrl.isNotEmpty ? NetworkImage(legacyUrl) : null;
+  }
+
+  void _showStudentCard({required String name, required String id, required String programme, required String email, required String semester, required ImageProvider<Object>? photoImage}) {
     showDialog<void>(context: context, builder: (context) => Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
         Row(children: [const Icon(Icons.verified_user_outlined, color: AppTheme.red), const SizedBox(width: 8), const Expanded(child: Text('SGU STUDENT ID CARD', style: TextStyle(fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w900, color: AppTheme.red))), IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))]),
         const SizedBox(height: 12),
         Container(width: double.infinity, padding: const EdgeInsets.all(22), decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppTheme.darkRed, AppTheme.red]), borderRadius: BorderRadius.circular(22)), child: Column(children: [
-          CircleAvatar(radius: 46, backgroundColor: Colors.white, backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? const Icon(Icons.person, size: 48, color: AppTheme.red) : null),
+          CircleAvatar(radius: 46, backgroundColor: Colors.white, backgroundImage: photoImage, child: photoImage == null ? const Icon(Icons.person, size: 48, color: AppTheme.red) : null),
           const SizedBox(height: 14), Text(name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
           const SizedBox(height: 6), Text(id.isEmpty ? 'Student ID not added' : 'Student ID  $id', style: const TextStyle(color: Colors.white, fontSize: 14)),
           const SizedBox(height: 6), Text([programme, semester.isEmpty ? '' : 'Semester $semester'].where((x) => x.isNotEmpty).join(' • '), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
@@ -252,12 +271,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 SelectableText(snapshot.error.toString(), style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
               ])),
             Card(child: Padding(padding: const EdgeInsets.all(22), child: LayoutBuilder(builder: (context, box) {
-              final photoUrl = (data['photoUrl'] ?? user?.photoURL ?? '').toString();
+              final photoImage = _photoProvider(data, user);
               final identity = Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                Stack(children: [CircleAvatar(radius: 42, backgroundColor: const Color(0xFFFFE0DD), backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? Text(initials, style: const TextStyle(color: AppTheme.darkRed, fontWeight: FontWeight.w900, fontSize: 18)) : null), Positioned(right: 0, bottom: 0, child: Material(color: AppTheme.red, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: _uploadingPhoto ? null : () => _pickProfilePhoto(data), child: Padding(padding: const EdgeInsets.all(7), child: _uploadingPhoto ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16))))) ]),
+                Stack(children: [CircleAvatar(radius: 42, backgroundColor: const Color(0xFFFFE0DD), backgroundImage: photoImage, child: photoImage == null ? Text(initials, style: const TextStyle(color: AppTheme.darkRed, fontWeight: FontWeight.w900, fontSize: 18)) : null), Positioned(right: 0, bottom: 0, child: Material(color: AppTheme.red, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: _uploadingPhoto ? null : () => _pickProfilePhoto(data), child: Padding(padding: const EdgeInsets.all(7), child: _uploadingPhoto ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16))))) ]),
                 const SizedBox(width: 18), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: AppTheme.navy)), const SizedBox(height: 5), Text(email, style: const TextStyle(color: AppTheme.muted)), const SizedBox(height: 8), const Wrap(spacing: 8, runSpacing: 8, children: [Chip(avatar: Icon(Icons.verified_user_outlined, size: 16), label: Text('Firebase account')), Chip(avatar: Icon(Icons.sync, size: 16), label: Text('Live profile'))])]))
               ]);
-              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [identity, const SizedBox(height: 18), Wrap(spacing: 10, runSpacing: 10, children: [OutlinedButton.icon(onPressed: () => _pickProfilePhoto(data), icon: const Icon(Icons.add_a_photo_outlined), label: const Text('Change picture')), FilledButton.icon(onPressed: () => _showStudentCard(name: name, id: id == 'Not added' ? '' : id, programme: programme == 'Not added' ? '' : programme, email: email, semester: semester == 'Not set' ? '' : semester, photoUrl: photoUrl), icon: const Icon(Icons.badge_outlined), label: const Text('View student ID card'))])]);
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [identity, const SizedBox(height: 18), Wrap(spacing: 10, runSpacing: 10, children: [OutlinedButton.icon(onPressed: () => _pickProfilePhoto(data), icon: const Icon(Icons.add_a_photo_outlined), label: const Text('Change picture')), FilledButton.icon(onPressed: () => _showStudentCard(name: name, id: id == 'Not added' ? '' : id, programme: programme == 'Not added' ? '' : programme, email: email, semester: semester == 'Not set' ? '' : semester, photoImage: photoImage), icon: const Icon(Icons.badge_outlined), label: const Text('View student ID card'))])]);
             }))),
             const SizedBox(height: 16),
             const Text('Personal and academic information', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.navy)),
