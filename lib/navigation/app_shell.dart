@@ -198,7 +198,7 @@ class _AppShellState extends State<AppShell> {
           NavItem('Attendance', Icons.fact_check_outlined),
           NavItem('Announcements', Icons.campaign_outlined),
           NavItem('Events', Icons.event_outlined),
-          NavItem('Facilities', Icons.business_outlined),
+          NavItem('Facilities', Icons.event_available_outlined),
           NavItem('Finance', Icons.account_balance_wallet_outlined),
           NavItem('Requests', Icons.support_agent_outlined),
           NavItem('Form Records', Icons.storage_outlined),
@@ -341,10 +341,10 @@ class _AppShellState extends State<AppShell> {
     final List<(String, IconData, List<String>)> groups;
     switch (role) {
       case UserRole.student:
-        primaryLabels = const ['Dashboard', 'My Courses', 'Assignments', 'Timetable', 'Academic Progress', 'Service Request Form'];
+        primaryLabels = const ['Dashboard', 'Facility Booking', 'My Courses', 'Assignments', 'Timetable', 'Academic Progress', 'Service Request Form'];
         groups = const [
           ('ACADEMICS', Icons.school_outlined, ['Attendance', 'Course Registration', 'Exam Schedule', 'Hall Ticket', 'Results', 'Transcript', 'Calendar']),
-          ('CAMPUS LIFE', Icons.explore_outlined, ['Announcements', 'Events', 'Campus', 'Campus Services', 'Facility Booking', 'Clubs', 'Library', 'Hostel', 'Transport', 'Cafeteria', 'Career']),
+          ('CAMPUS LIFE', Icons.explore_outlined, ['Announcements', 'Events', 'Campus', 'Campus Services', 'Clubs', 'Library', 'Hostel', 'Transport', 'Cafeteria', 'Career']),
           ('PERSONAL & SUPPORT', Icons.person_outline, ['Notifications', 'Tasks', 'Messages', 'Requests', 'Profile', 'Settings', 'Help & Support']),
           ('FINANCE & DOCUMENTS', Icons.folder_outlined, ['Fee Summary', 'Payment History', 'Receipts', 'Documents']),
         ];
@@ -355,10 +355,10 @@ class _AppShellState extends State<AppShell> {
           ('PERSONAL & SUPPORT', Icons.person_outline, ['Notifications', 'Messages', 'Profile', 'Settings', 'Help & Support']),
         ];
       case UserRole.admin:
-        primaryLabels = const ['Dashboard', 'Students', 'Teachers', 'Courses', 'Events', 'Requests', 'Form Records'];
+        primaryLabels = const ['Dashboard', 'Facilities', 'Students', 'Teachers', 'Courses', 'Events', 'Requests', 'Form Records'];
         groups = const [
           ('ACADEMIC MANAGEMENT', Icons.school_outlined, ['Staff', 'Departments', 'Programmes', 'Subjects', 'Timetable', 'Exams', 'Academic Calendar', 'Assignments', 'Submissions', 'Grades', 'Attendance']),
-          ('CAMPUS & REPORTING', Icons.business_outlined, ['Announcements', 'Facilities', 'Finance', 'Reports', 'Audit Logs']),
+          ('CAMPUS & REPORTING', Icons.business_outlined, ['Announcements', 'Finance', 'Reports', 'Audit Logs']),
           ('PERSONAL & SUPPORT', Icons.person_outline, ['Notifications', 'Settings', 'Help & Support']),
         ];
     }
